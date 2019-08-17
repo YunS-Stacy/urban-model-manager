@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import Layout, { Header, Body } from '../../components/Layout';
-import { IdentityProvider, DEFAULT_IDENTITY_CONTEXT } from '../contexts/IdentityContext';
+import {
+  IdentityProvider,
+  INITIAL_IDENTITY_CONTEXT,
+} from '../contexts/IdentityContext';
 import TopNavbar from './TopNavbar';
 
-
 const Home = () => {
-   
-    const setIdentity = (cb: any) => {
-      setIdentityState({ ...identity, ...cb });
-    };
-  
-    const [identity, setIdentityState] = useState({
-      ...DEFAULT_IDENTITY_CONTEXT,
-      setIdentity,
-    });
- 
+  const setIdentity = (cb: any) => {
+    setIdentityState({ ...identityState, identity: cb });
+  };
+
+  const [identityState, setIdentityState] = useState({
+    ...INITIAL_IDENTITY_CONTEXT,
+    setIdentity,
+  });
+
   return (
-    <IdentityProvider value={identity}>
+    <IdentityProvider value={identityState}>
       <Layout>
         <Header>
           <TopNavbar />

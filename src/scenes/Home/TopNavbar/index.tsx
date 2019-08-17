@@ -12,8 +12,8 @@ const TopNavbar: React.FC = () => {
         <Nav className="mr-auto">
           <Nav.Link href="#home">Home</Nav.Link>
           <Nav.Link href="#link">Link</Nav.Link>
-          <IdentityNav />
         </Nav>
+        <IdentityNav />
       </Navbar.Collapse>
     </Navbar>
   );
