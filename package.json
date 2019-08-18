@@ -22,8 +22,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "deploy": "node configs/gh-pages.config.js"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -44,5 +43,5 @@
     "@types/styled-components": "^4.1.18",
     "eslint": "^6.1.0"
   },
-  "homepage": "https://yuns-stacy.github.io/urban-model-manager"
+  "homepage": "."
 }
