@@ -1,9 +1,17 @@
 import { createContext } from 'react';
+import { IUser, UserSession } from '@esri/arcgis-rest-auth';
 export const INITIAL_IDENTITY_CONTEXT: {
-  identity: any;
+  identity: {
+    user: IUser,
+    org: {
+      name: string,
+      url: string,
+    },
+    session: UserSession
+  } | null;
   setIdentity: (cb?: any) => void;
 } = {
-  identity: null as any,
+  identity: null,
   setIdentity: () => null,
 };
 

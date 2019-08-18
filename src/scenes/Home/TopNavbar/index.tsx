@@ -1,19 +1,17 @@
 import React from 'react';
 import Navbar from 'react-bootstrap/Navbar';
-import Nav from 'react-bootstrap/Nav';
 import IdentityNav from './IdentityNav';
 
 const TopNavbar: React.FC = () => {
   return (
     <Navbar bg="light" expand="lg">
-      <Navbar.Brand href="#home">Urban Model Manager</Navbar.Brand>
+      <Navbar.Brand href="#">Urban Model Manager</Navbar.Brand>
       <Navbar.Toggle aria-controls="basic-navbar-nav" />
-      <Navbar.Collapse id="basic-navbar-nav">
-        <Nav className="mr-auto">
-          <Nav.Link href="#home">Home</Nav.Link>
-          <Nav.Link href="#link">Link</Nav.Link>
-        </Nav>
-        <IdentityNav />
+      <Navbar.Collapse>
+        {/* CSS fix for calcite-maps */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <IdentityNav />
+        </div>
       </Navbar.Collapse>
     </Navbar>
   );
