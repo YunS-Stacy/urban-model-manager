@@ -43,5 +43,6 @@
   "devDependencies": {
     "@types/styled-components": "^4.1.18",
     "eslint": "^6.1.0"
-  }
+  },
+  "homepage": "https://yuns-stacy.github.io/urban-model-manager"
 }
