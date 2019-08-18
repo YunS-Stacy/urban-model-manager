@@ -2313,6 +2313,11 @@ cache-base@^1.0.1:
     union-value "^1.0.0"
     unset-value "^1.0.0"
 
+calcite-ui-icons-react@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/calcite-ui-icons-react/-/calcite-ui-icons-react-0.6.0.tgz#9530b7c237a0035e28086a93955f3369cd50b6f7"
+  integrity sha512-sfVj7NXzHGXPP94ZA/JwJhU3PgwfVK+Tfaa+QD6UtfLhivc55+Cu784IUJYwGwb9+c19lbk5iyHQ7QCjlBi9kA==
+
 call-me-maybe@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/call-me-maybe/-/call-me-maybe-1.0.1.tgz#26d208ea89e37b5cbde60250a15f031c16a4d66b"

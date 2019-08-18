@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import Header from './Header';
 import Body from './Body';
+import Content from './Content';
 
 const StyledLayout = styled.div`
   position: fixed;
@@ -14,6 +15,10 @@ const StyledLayout = styled.div`
 
   display: flex;
   flex-direction: column;
+
+  .btn:focus {
+    outline: initial !important;
+  }
 `;
 
 export type TLayoutFC = React.PropsWithChildren<{
@@ -24,6 +29,6 @@ const Layout: React.FC<TLayoutFC> = ({ children, style }) => {
   return <StyledLayout style={style}>{children}</StyledLayout>;
 };
 
-export { Body, Header, Layout };
+export { Body, Header, Layout, Content };
 
 export default Layout;
