@@ -1,10 +1,10 @@
 import React from 'react';
-import logo from './logo.svg';
+// import logo from './logo.svg';
 import './App.css';
-import AppLayout from './components/shared/Layout';
+import Home from './scenes/Home';
 
 const App: React.FC = () => {
-  return <AppLayout />;
+  return <Home />;
 };
 
 export default App;
