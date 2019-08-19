@@ -3,7 +3,7 @@
 
 This project provides UI to manage urban model user items in AGOL.
 
-[View it live](https://urban-model-manager.yshi.now.sh)
+[View it live](https://urban-model-manager.now.sh)
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
