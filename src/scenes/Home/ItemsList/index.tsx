@@ -2,24 +2,16 @@ import React, { useContext, useState, useEffect } from 'react';
 import { request, IRequestOptions } from '@esri/arcgis-rest-request';
 
 import Button from 'react-bootstrap/Button';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-
 import Accordion from 'react-bootstrap/Accordion';
 import Card from 'react-bootstrap/Card';
-import Form from 'react-bootstrap/Form';
 import Spinner from 'react-bootstrap/Spinner';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Tooltip from 'react-bootstrap/Tooltip';
-
-// @ts-ignore
-import PenIcon from 'calcite-ui-icons-react/PenIcon';
-// @ts-ignore
-import TrashIcon from 'calcite-ui-icons-react/TrashIcon';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
+// Components
 import AddItemAccordion from './AddItemAccordion';
-import ItemDataFormGroup from './ItemDataFormGroup';
+import ItemForm from './ItemForm';
+import AppPagination from '../../../components/AppPagination';
 
 export type TUrbanModelItemData = {
   version: string;
@@ -45,7 +37,6 @@ type TSearchResult = {
 
 const searchItems = (portalUrl: string, params?: IRequestOptions['params']) => {
   const url = `https://${portalUrl}/sharing/rest/search`;
-
   return request(url, {
     params,
   });
@@ -64,24 +55,37 @@ const ItemsList = () => {
     updating: false,
   });
 
+  const searchFn = async (queryOptions?: { start?: number; num?: number, sortField?: string }) => {
+    if (identity && identity.org) {
+      const {
+        org: { url },
+        user: { username },
+      } = identity;
+
+      return searchItems(url, {
+        q:
+          (searchResult && searchResult.query) ||
+          `type: Urban Model owner: ${username}`,
+        sortField: 'title',
+        start: searchResult && searchResult.start,
+        num: searchResult && searchResult.num,
+        ...queryOptions,
+        f: 'json',
+      })
+        .then((res) => setSearchResult(res))
+        .catch((e) => console.error(e));
+    }
+    return null;
+  };
+
   // Fetch items after logged in
   useEffect(() => {
     if (!(identity && identity.user)) {
-      return setSearchResult(null);
+      setSearchResult(null);
+    } else {
+      searchFn();
     }
-
-    const {
-      org: { url },
-      user: { username },
-    } = identity;
-
-    searchItems(url, {
-      q: `type: Urban Model owner: ${username}`,
-      f: 'json',
-    })
-      .then(res => setSearchResult(res))
-      .catch(error => console.error(error));
-  }, [identity]);
+  }, [identity && identity.user && identity.user.username]);
 
   // Fetch item detail
   useEffect(() => {
@@ -89,10 +93,10 @@ const ItemsList = () => {
       const {
         org: { url },
       } = identity;
-      setItem(s => ({ ...s, loading: true }));
+      setItem((s) => ({ ...s, loading: true }));
       request(`https://${url}/sharing/rest/content/items/${item.id}/data`).then(
         (content: TUrbanModelItemData) => {
-          setItem(s => ({ ...s, content, loading: false }));
+          setItem((s) => ({ ...s, content, loading: false }));
         },
       );
     }
@@ -100,7 +104,7 @@ const ItemsList = () => {
 
   const submitFn = async (cb: TUrbanModelItemData) => {
     if (identity && item.id && cb) {
-      setItem(s => ({
+      setItem((s) => ({
         ...s,
         updating: true,
       }));
@@ -121,14 +125,14 @@ const ItemsList = () => {
           },
         );
 
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           content: cb,
           updating: false,
         }));
       } catch (error) {
         console.error(error);
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           updating: false,
         }));
@@ -138,7 +142,7 @@ const ItemsList = () => {
 
   const deleteFn = async (itemId: string) => {
     if (identity && itemId) {
-      setItem(s => ({
+      setItem((s) => ({
         ...s,
         loading: true,
       }));
@@ -153,7 +157,7 @@ const ItemsList = () => {
           }/delete`,
         );
 
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           id: '',
           content: null,
@@ -163,20 +167,11 @@ const ItemsList = () => {
         if (searchResult && searchResult.query)
           // Sset timeout to refresh
           setTimeout(async () => {
-            try {
-              // Set timeout to f
-              const res = await searchItems(url, {
-                q: searchResult.query,
-                f: 'json',
-              });
-              setSearchResult(res);
-            } catch (error) {
-              console.error(error);
-            }
+            searchFn();
           }, 1000);
       } catch (error) {
         console.error(error);
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           loading: false,
         }));
@@ -188,22 +183,7 @@ const ItemsList = () => {
       <AddItemAccordion
         refreshFn={() => {
           setTimeout(() => {
-            if (
-              identity &&
-              identity.session &&
-              searchResult &&
-              searchResult.query
-            ) {
-              const {
-                org: { url },
-              } = identity;
-              searchItems(url, {
-                q: searchResult.query,
-                f: 'json',
-              })
-                .then(res => setSearchResult(res))
-                .catch(e => console.error(e));
-            }
+            searchFn();
           }, 1000);
         }}
       />
@@ -220,9 +200,9 @@ const ItemsList = () => {
                   onClick={() =>
                     item.id === id
                       ? // Toggle off
-                        setItem(s => ({ ...s, id: '', content: null }))
+                        setItem((s) => ({ ...s, id: '', content: null }))
                       : // Switch
-                        setItem(s => ({
+                        setItem((s) => ({
                           ...s,
                           id,
                           content: null,
@@ -235,17 +215,15 @@ const ItemsList = () => {
               <Accordion.Collapse eventKey={id}>
                 <Card.Body>
                   {item.loading ? (
-                    <div
-                      style={{ display: 'flex', justifyContent: 'center' }}
-                    >
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <Spinner animation="border" />
                     </div>
                   ) : (
                     item.content && (
-                      <UrbanModelItemForm
+                      <ItemForm
                         value={item.content}
                         updating={item.updating}
-                        submitFn={cb => submitFn(cb)}
+                        submitFn={(cb) => submitFn(cb)}
                         deleteFn={() => deleteFn(item.id)}
                       />
                     )
@@ -255,6 +233,38 @@ const ItemsList = () => {
             </Card>
           ))}
       </Accordion>
+      {searchResult && searchResult.total > 0 ? (
+        <AppPagination
+          prevFn={
+            searchResult.start > 1
+              ? () => {
+                  searchFn({
+                    start: searchResult.start - searchResult.num,
+                    num: searchResult.num,
+                  });
+                }
+              : null
+          }
+          nextFn={
+            searchResult.nextStart > searchResult.start
+              ? () => {
+                  searchFn({
+                    start: searchResult.nextStart,
+                    num: searchResult.num,
+                  });
+                }
+              : null
+          }
+          pageFn={n =>
+            searchFn({
+              start: n * searchResult.num + 1,
+              num: searchResult.num,
+            })
+          }
+          activePage={Math.floor(searchResult.start / searchResult.num)}
+          pageCount={Math.ceil(searchResult.total / searchResult.num)}
+        />
+      ) : null}
     </>
   ) : (
     <div
@@ -264,148 +274,6 @@ const ItemsList = () => {
     >
       {identity && identity.user ? 'No results' : 'Please log in'}
     </div>
-  );
-};
-
-const UrbanModelItemForm = ({
-  value,
-  updating,
-  submitFn,
-  deleteFn,
-}: {
-  value: TUrbanModelItemData;
-  updating: boolean;
-  submitFn: (cb: TUrbanModelItemData) => void;
-  deleteFn: any;
-}) => {
-  const [disabled, setDisabled] = useState(true);
-  const [nValue, setNValue] = useState(value);
-
-  return (
-    <Form>
-      <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
-        <OverlayTrigger
-          placement="bottom"
-          overlay={<Tooltip id="edit-icon">Edit</Tooltip>}
-        >
-          <Button variant="link" onClick={() => setDisabled(s => !s)}>
-            <PenIcon />
-          </Button>
-        </OverlayTrigger>
-        <OverlayTrigger
-          placement="bottom"
-          overlay={<Tooltip id="trash-icon">Delete</Tooltip>}
-        >
-          <Button variant="link" onClick={deleteFn}>
-            <TrashIcon />
-          </Button>
-        </OverlayTrigger>
-      </ButtonToolbar>
-      <ItemDataFormGroup
-        value={nValue}
-        setValue={setNValue}
-        disabled={disabled || updating}
-      />
-
-      {/* {(['version', 'services'] as (keyof TUrbanModelItemData)[]).map(key => (
-        <Form.Group controlId={`data${key}`} key={key}>
-          <Form.Label
-            style={{
-              textTransform: 'capitalize',
-            }}
-          >
-            {key}
-          </Form.Label>
-          {typeof nValue[key] === 'string' ? (
-            <Form.Control
-              type="text"
-              value={nValue[key] as string}
-              readOnly={true}
-            />
-          ) : (
-            (nValue[key] as typeof value['services']).map(
-              ({ type, itemId }, i) => (
-                <Form.Group
-                  as={Form.Row}
-                  controlId={`data${key}${type}`}
-                  key={type}
-                >
-                  <Form.Label
-                    style={{
-                      textTransform: 'capitalize',
-                      textAlign: 'right',
-                    }}
-                    column={true}
-                    sm={2}
-                  >
-                    {type}
-                  </Form.Label>
-                  <Col sm={10}>
-                    <Form.Control
-                      key={type}
-                      type="text"
-                      disabled={disabled || updating}
-                      value={itemId}
-                      title={type}
-                      onChange={(e: any) => {
-                        const nextValue = {
-                          ...nValue,
-                          [key]: [
-                            ...nValue[key as 'services'].slice(0, i),
-                            {
-                              type,
-                              itemId: e.target.value,
-                            },
-                            ...nValue[key as 'services'].slice(i + 1),
-                          ],
-                        };
-
-                        setNValue(nextValue);
-                      }}
-                    />
-                  </Col>
-                </Form.Group>
-              ),
-            )
-          )}
-        </Form.Group>
-      ))} */}
-
-      {!disabled && (
-        <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
-          <Button
-            disabled={updating}
-            variant="primary"
-            type="submit"
-            onClick={() => {
-              submitFn(nValue);
-            }}
-          >
-            {updating ? (
-              <Spinner
-                as="span"
-                animation="border"
-                size="sm"
-                role="status"
-                aria-hidden="true"
-              />
-            ) : (
-              'Update'
-            )}
-          </Button>
-          <Button
-            disabled={updating}
-            variant="light"
-            onClick={() => {
-              setNValue(value);
-              setDisabled(true);
-            }}
-          >
-            Cancel
-          </Button>
-        </ButtonToolbar>
-      )}
-    </Form>
   );
 };
 

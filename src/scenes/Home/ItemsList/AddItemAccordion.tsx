@@ -1,17 +1,21 @@
 import React, { useState, useContext } from 'react';
+import { request } from '@esri/arcgis-rest-request';
+
 import Accordion from 'react-bootstrap/Accordion';
 import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import Form from 'react-bootstrap/Form';
+import Spinner from 'react-bootstrap/Spinner';
 
 // @ts-ignore
 import PlusIcon from 'calcite-ui-icons-react/PlusIcon';
+// Types
 import { TUrbanModelItemData } from '.';
+// Components
 import ItemDataFormGroup from './ItemDataFormGroup';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-import Spinner from 'react-bootstrap/Spinner';
+// Contexts
 import IdentityContext from '../../contexts/IdentityContext';
-import { request } from '@esri/arcgis-rest-request';
-import Form from 'react-bootstrap/Form';
 
 const INITIAL_VALUE: TUrbanModelItemData = {
   version: '1.0.5',
@@ -74,7 +78,7 @@ const AddItemAccordion = ({
             as={Button}
             variant="link"
             eventKey="1"
-            onClick={() => setActiveKey(s => (!s ? '1' : ''))}
+            onClick={() => setActiveKey((s) => (!s ? '1' : ''))}
           >
             <PlusIcon size={16} />
             Add Urban Model
@@ -89,13 +93,13 @@ const AddItemAccordion = ({
                 value={item.title}
                 onChange={(e: any) => {
                   const title = e.target.value;
-                  setItem(s => ({ ...s, title }));
+                  setItem((s) => ({ ...s, title }));
                 }}
               />
             </Form.Group>
             <ItemDataFormGroup
               value={item.text}
-              setValue={text => setItem(s => ({ ...s, text }))}
+              setValue={(text) => setItem((s) => ({ ...s, text }))}
               disabled={false}
             />
             <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
