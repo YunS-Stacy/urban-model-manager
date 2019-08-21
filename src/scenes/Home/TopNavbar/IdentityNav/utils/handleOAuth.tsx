@@ -7,7 +7,7 @@ export const OAUTH_CONFIG = {
   redirectUri: window.location.origin,
 };
 
-export default async function signIn() {
+export default async function handleOAuth() {
   let session;
   try {
     session = UserSession.completeOAuth2({

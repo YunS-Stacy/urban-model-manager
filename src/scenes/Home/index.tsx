@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { setDefaultRequestOptions } from '@esri/arcgis-rest-request';
+
 import Layout, { Header, Body, Content } from '../../components/Layout';
 import {
   IdentityProvider,
@@ -6,7 +8,6 @@ import {
 } from '../contexts/IdentityContext';
 import TopNavbar from './TopNavbar';
 import ItemsList from './ItemsList';
-import { setDefaultRequestOptions } from '@esri/arcgis-rest-request';
 
 const Home = () => {
   const setIdentity = (cb: any) => {
