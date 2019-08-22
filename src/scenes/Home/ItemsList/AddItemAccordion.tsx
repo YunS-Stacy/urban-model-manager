@@ -115,8 +115,8 @@ const AddItemAccordion = ({
                   await addItem(url, username as string, {
                     title: item.title,
                     type: 'Urban Model',
-                    typeKeywords: '["Urban", "Urban-Model"]',
-                    tags: '["Urban", "Urban-Model"]',
+                    typeKeywords: 'Urban,Urban-Model',
+                    tags: 'Urban,Urban-Model',
                     text: JSON.stringify(item.text),
                   });
                   setItem(INITIAL_ITEM);
