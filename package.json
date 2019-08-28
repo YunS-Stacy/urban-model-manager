@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@types/styled-components": "^4.1.18",
+    "@welldone-software/why-did-you-render": "^3.3.3",
     "eslint": "^6.1.0"
   },
   "homepage": "."

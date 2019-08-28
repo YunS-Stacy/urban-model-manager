@@ -36,3 +36,16 @@
 .accordion>.card:first-of-type {
   border-bottom: 1px solid rgba(0,0,0,.125);
 }
+
+.form-check-input {
+  position: absolute;
+  margin-top: .3rem !important;
+  margin-left: -1.25rem !important;
+  margin-right: -1.25rem !important;
+}
+
+.form-check-label {
+  font-weight: initial !important;
+  margin-left: 1.25rem !important
+}
+

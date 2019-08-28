@@ -13,22 +13,26 @@ import PenIcon from 'calcite-ui-icons-react/PenIcon';
 import TrashIcon from 'calcite-ui-icons-react/TrashIcon';
 
 // Types
-import { TUrbanModelItemData } from '.';
+import { TUrbanModelItemData } from '..';
 // Componnets
-import ItemDataFormGroup from './ItemDataFormGroup';
+import ItemDataFormGroup from '../../../../components/ItemDataFormGroup';
+
 
 type TItemForm<T = TUrbanModelItemData> = {
   value: T;
-  updating: boolean;
+  updating?: boolean;
   submitFn: (cb: T) => void;
   deleteFn: any;
+  children?: React.ReactNode;
 };
+
 const ItemForm: React.FC<TItemForm> = ({
   value,
-  updating,
+  updating = false,
   submitFn,
   deleteFn,
-}) => {
+  children,
+}) => {  
   const [disabled, setDisabled] = useState(true);
   const [nValue, setNValue] = useState(value);
 
@@ -57,6 +61,7 @@ const ItemForm: React.FC<TItemForm> = ({
         setValue={setNValue}
         disabled={disabled || updating}
       />
+      {children}
       {!disabled && (
         <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
           <Button
@@ -94,4 +99,7 @@ const ItemForm: React.FC<TItemForm> = ({
     </Form>
   );
 };
+
+(ItemForm as any).whyDidYouRender = true;
+
 export default ItemForm;
