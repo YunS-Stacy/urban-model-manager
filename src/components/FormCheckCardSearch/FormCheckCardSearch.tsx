@@ -41,14 +41,19 @@ const FormCheckCardSearch = ({
   }, [values]);
 
   React.useEffect(() => {
-    if (!query || !queryField) return;
-    const newSorted = flattenArrays(
-      divideItemsByQuery(sortedValues, query, queryField).map((el) =>
-        sortItemsByQuery(el, queryField),
-      ),
-    );
-      
-    setSortedValues(newSorted);
+    if (!queryField) return;
+    
+    if (!query) {
+      setSortedValues(values);
+    } else {
+      const newSorted = flattenArrays(
+        divideItemsByQuery(sortedValues, query, queryField).map((el) =>
+          sortItemsByQuery(el, queryField),
+        ),
+      );
+
+      setSortedValues(newSorted);
+    }
   }, [query, queryField]);
 
   React.useEffect(() => {
@@ -60,7 +65,7 @@ const FormCheckCardSearch = ({
     } else {
       checkRef.current.indeterminate = false;
     }
-  }, [selected]);
+  }, [selected && selected.length]);
 
   const checkRef = useRef(null as null | HTMLInputElement);
 
@@ -82,9 +87,11 @@ const FormCheckCardSearch = ({
             <Accordion.Toggle
               as={Button}
               variant="link"
+              size="small"
               eventKey={eventKey || '0'}
+              disabled={disabled}
             >
-              <Card.Title style={{ fontSize: '1.4rem' }}>{title}</Card.Title>
+              <div>{title}</div>
             </Accordion.Toggle>
           </Card.Header>
           <Accordion.Collapse eventKey={eventKey || '0'}>

@@ -1,20 +1,23 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, memo } from 'react';
 import { request, IRequestOptions } from '@esri/arcgis-rest-request';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
+
+import FolderContext from './contexts/FolderContext';
+import AccessContext from './contexts/AccessContext';
+
 // Components
 import AddItemAccordion from './AddItemAccordion';
 import AppPagination from '../../../components/AppPagination';
 import { IItem, IGroup } from '@esri/arcgis-rest-types';
 import fetchGroups from './utils/fetchGroups';
 import ItemAccordion from './ItemAccordion';
-import ItemFolderFormGroup from '../../../components/ItemFolderFormGroup';
 import fetchFolders from './utils/fetchFolders';
-import { getItemData, getItem } from '@esri/arcgis-rest-portal';
-import GroupsContext from './contexts/GroupsContext';
-import ItemSharingDiv from './ItemSharingDiv';
+import { getItemData, getItem, moveItem } from '@esri/arcgis-rest-portal';
 import fetchItemSharing from './utils/fetchItemSharing';
+import unshareItem from './utils/unshareItem';
+import shareItem from './utils/shareItem';
 
 export interface IItemsListChild<T> {
   value?: T | null;
@@ -80,14 +83,57 @@ const ItemsList = () => {
     updating: false,
   } as IAppItem);
 
-  const [sharingOption, setSharingOption] = React.useState({
+  const [defaultSharingOption, setDefaultSharingOption] = React.useState({
     groups: [],
     account: false,
     everyone: false,
   } as AGOLSharingOption);
 
   const [folders, setFolders] = useState(null as IFolder[] | null);
+
   const [groups, setGroups] = useState(null as IGroup[] | null);
+  const fetchItem = async () => {
+    if (identity && identity.org && item && item.id) {
+      setItem((s) => ({ ...s, loading: true }));
+
+      const {
+        org: { url: portalUrl },
+      } = identity;
+
+      try {
+        const res = await getItem(item.id);
+
+        // Sharing Option
+        const sharing = await fetchItemSharing({
+          portalUrl,
+          username: res.owner,
+          itemId: res.id,
+        });
+        if (!sharing) return;
+        const { access, groups } = sharing;
+        setDefaultSharingOption((s) => ({
+          ...s,
+          groups,
+          everyone: access === 'public',
+          account: access === 'org',
+        }));
+
+        // Data
+        const text = await getItemData(item.id);
+        setItem((s) => ({
+          ...s,
+          ...res,
+          ownerFolder: res.ownerFolder || '',
+          text,
+          loading: false,
+        }));
+      } catch (error) {
+        console.error(error);
+
+        setItem((s) => ({ ...s, loading: false }));
+      }
+    }
+  };
   const fetchItemsFn = async (queryOptions?: {
     start?: number;
     num?: number;
@@ -129,7 +175,10 @@ const ItemsList = () => {
         .then((v) => setGroups(v))
         .catch((e) => console.error(e));
       fetchFolders({ portalUrl, username })
-        .then((v) => setFolders(v))
+        .then((v) => {
+          // Add default/root folder
+          setFolders([{ id: '', title: 'Default' }, ...(v || [])]);
+        })
         .catch((e) => console.error(e));
     }
   }, [identity && identity.user && identity.user.username]);
@@ -137,48 +186,28 @@ const ItemsList = () => {
   // Fetch item detail
   useEffect(() => {
     if (identity && item.id) {
-      setItem((s) => ({ ...s, loading: true }));
-
-      getItem(item.id).then((res) => {
-        setItem((s) => ({ ...s, ...res, loading: false }));
-        const {
-          org: { url: portalUrl },
-        } = identity;
-        fetchItemSharing({
-          portalUrl,
-          username: res.owner,
-          itemId: res.id,
-        }).then((sharing) => {
-          if (!sharing) return;
-          const { access, groups } = sharing;
-          setSharingOption((s) => ({
-            ...s,
-            groups,
-            everyone: access === 'public',
-            account: access === 'org',
-          }));
-        });
-      });
-
-      getItemData(item.id).then((text: TUrbanModelItemData) =>
-        setItem((s) => ({ ...s, text, loading: false })),
-      );
+      fetchItem();
     }
   }, [identity, item.id]);
 
-  const submitFn = async (cb: TUrbanModelItemData) => {
+  const updateFn = async (
+    cb: TUrbanModelItemData,
+    sharing: AGOLSharingOption,
+    folderId: IFolder['id'],
+  ) => {
     if (identity && item.id && cb) {
       setItem((s) => ({
         ...s,
         updating: true,
       }));
       const {
-        org: { url },
+        org: { url: portalUrl },
         user: { username },
+        session,
       } = identity;
       try {
         await request(
-          `https://${url}/sharing/rest/content/users/${username}/items/${item.id}/update`,
+          `https://${portalUrl}/sharing/rest/content/users/${username}/items/${item.id}/update`,
           {
             params: {
               text: JSON.stringify(cb),
@@ -187,11 +216,44 @@ const ItemsList = () => {
           },
         );
 
+        if (folderId !== (item && item.ownerFolder)) {
+
+          await moveItem({
+            itemId: item.id,
+            authentication: session,
+            folderId,
+          });
+        }
+
+        // Diff sharing
+        if (
+          sharing.account !== defaultSharingOption.account ||
+          sharing.everyone !== defaultSharingOption.everyone ||
+          sharing.groups.join('') !== defaultSharingOption.groups.join('')
+        ) {
+          if (sharing.groups.join('') !== defaultSharingOption.groups.join('')) {
+            if (defaultSharingOption.groups.length > 0) {
+              await unshareItem({
+                username,
+                portalUrl,
+                itemId: item.id,
+                groups: sharing.groups,
+              });
+            }
+          }
+
+          await shareItem({
+            portalUrl,
+            username,
+            itemId: item.id,
+            sharingOption: sharing,
+          });
+        }
         setItem((s) => ({
           ...s,
-          text: cb,
           updating: false,
         }));
+        await fetchItem();
       } catch (error) {
         console.error(error);
         setItem((s) => ({
@@ -241,41 +303,36 @@ const ItemsList = () => {
 
   return searchResult && searchResult.results.length > 0 ? (
     <>
-      <AddItemAccordion
-        refreshFn={() => {
-          setTimeout(() => {
-            fetchItemsFn();
-          }, 1000);
+      <AccessContext.Provider
+        value={{
+          groups,
+          sharingOption: defaultSharingOption,
         }}
-      />
-
-      <ItemAccordion
-        values={searchResult && searchResult.results}
-        value={item}
-        setValueFn={(cb) => setItem(cb)}
-        submitFn={submitFn}
-        deleteFn={deleteFn}
       >
-        <ItemFolderFormGroup
-          values={folders}
-          value={
-            folders &&
-            folders.find(({ id }) => id === (item && item.ownerFolder))
-          }
-          setValueFn={(cb) => console.log(cb, 'move item')}
-        />
-        <GroupsContext.Provider value={groups}>
-          <ItemSharingDiv
-            value={sharingOption}
-            setValueFn={(v) => setSharingOption(v)}
+        <FolderContext.Provider
+          value={{
+            folders,
+            folderId: item && item.ownerFolder || '',
+          }}
+        >
+          <AddItemAccordion
+            refreshFn={() => {
+              setTimeout(() => {
+                fetchItemsFn();
+              }, 1000);
+            }}
           />
-          {/* <ItemGroupFormGroup
-            values={groups}
-            value={item && item.groups}
-            setValueFn={(cb) => console.log(cb, 'set group')}
-          /> */}
-        </GroupsContext.Provider>
-      </ItemAccordion>
+
+          <ItemAccordion
+            values={searchResult && searchResult.results}
+            value={item}
+            defaultSharing={defaultSharingOption}
+            setValueFn={(cb) => setItem(cb)}
+            submitFn={updateFn}
+            deleteFn={deleteFn}
+          />
+        </FolderContext.Provider>
+      </AccessContext.Provider>
 
       {searchResult && searchResult.total > 0 ? (
         <AppPagination
@@ -321,4 +378,4 @@ const ItemsList = () => {
   );
 };
 
-export default ItemsList;
+export default memo(ItemsList);

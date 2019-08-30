@@ -1,26 +1,34 @@
 import React, { useContext } from 'react';
-import { IItemsListChild, AGOLSharingOption } from '.';
-import IdentityContext from '../../contexts/IdentityContext';
 import FormCheck from 'react-bootstrap/FormCheck';
-import ItemGroupFormGroup from './ItemGroupFormGroup';
 import { IGroup } from '@esri/arcgis-rest-types';
 import FormLabel from 'react-bootstrap/FormLabel';
+import IdentityContext from '../../../contexts/IdentityContext';
+import AccessContext from '../contexts/AccessContext';
+import ItemGroupFormGroup from './ItemGroupFormGroup';
+import { AGOLSharingOption } from '..';
 
-interface IItemSharingDiv<T = AGOLSharingOption> extends IItemsListChild<T> {
-  value: T;
-}
-const ItemSharingDiv = ({ value, setValueFn }: IItemSharingDiv) => {
+type TItemSharingDiv = {
+  value: AGOLSharingOption;
+  disabled: boolean;
+  setValueFn: (cb: AGOLSharingOption) => void;
+};
+const ItemSharingDiv = ({ value, disabled, setValueFn }: TItemSharingDiv) => {
   const { identity } = useContext(IdentityContext);
+
+  const { groups } = useContext(AccessContext);
+
   const handleUpdateGroups = (groups: IGroup['id'][]) => {
     setValueFn({
       ...value,
       groups,
     });
   };
-  return !value ? null : (
+
+  return (
     <div>
       <FormLabel>Share</FormLabel>
       <FormCheck
+        disabled={disabled}
         readOnly={true}
         checked={value.everyone}
         onClick={() =>
@@ -32,6 +40,7 @@ const ItemSharingDiv = ({ value, setValueFn }: IItemSharingDiv) => {
         label={'Everyone (public)'}
       />
       <FormCheck
+        disabled={disabled}
         readOnly={true}
         checked={value.account}
         onClick={() =>
@@ -46,6 +55,8 @@ const ItemSharingDiv = ({ value, setValueFn }: IItemSharingDiv) => {
       />
       <ItemGroupFormGroup
         value={value.groups}
+        values={groups || []}
+        disabled={disabled}
         setValueFn={handleUpdateGroups}
       />
     </div>

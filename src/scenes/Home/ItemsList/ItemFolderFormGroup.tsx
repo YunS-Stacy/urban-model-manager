@@ -2,18 +2,14 @@ import React from 'react';
 import FormLabel from 'react-bootstrap/FormLabel';
 import FormControl from 'react-bootstrap/FormControl';
 import FormGroup from 'react-bootstrap/FormGroup';
-import { IItemsListChild } from '../scenes/Home/ItemsList';
+import { IFolder } from '.';
 
-
-
-interface AGOLFolderItem {
-  id: string;
-  title: string;
+interface IItemFolderFormGroup {
+  values?: IFolder[] | null;
+  disabled: boolean;
+  value?: IFolder | null;
+  setValueFn: (cb: IFolder['id']) => void;
 }
-
-interface IItemFolderFormGroup<T = AGOLFolderItem> extends IItemsListChild<T> {
-  values?: T[] | null;
-};
 
 const ItemFolderFormGroup = ({
   value,
@@ -24,14 +20,14 @@ const ItemFolderFormGroup = ({
   return !values ? null : (
     <FormGroup>
       <FormLabel>Folders</FormLabel>
-      <FormControl as="select" disabled={disabled}>
+      <FormControl
+        as="select"
+        disabled={disabled}
+        value={(value && value.id) || ''}
+        onChange={(e: any) => setValueFn(e.target.value)}
+      >
         {values.map((v) => (
-          <option
-            key={v.id}
-            disabled={v.id === (value && value.id)}
-            value={v.id}
-            onSelect={() => setValueFn(v)}
-          >
+          <option key={v.id || 'default'} value={v.id || 'default'}>
             {v.title}
           </option>
         ))}

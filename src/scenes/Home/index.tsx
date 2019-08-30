@@ -16,7 +16,6 @@ const Home = () => {
         authentication: cb.session,
       });
     }
-
     setIdentityState({ ...identityState, identity: cb });
   };
 

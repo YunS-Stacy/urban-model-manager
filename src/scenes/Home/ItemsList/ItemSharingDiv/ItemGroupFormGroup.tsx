@@ -1,11 +1,12 @@
-import React, { useContext } from 'react';
-import FormCheckCardSearch from '../../../components/FormCheckCardSearch';
+import React, { memo } from 'react';
+import FormCheckCardSearch from '../../../../components/FormCheckCardSearch';
 import { IGroup } from '@esri/arcgis-rest-types';
-import GroupsContext from './contexts/GroupsContext';
 
-interface IItemGroupFormGroup<T = IGroup['id']> {
-  value: T[];
-  setValueFn: (cb: T[]) => void;
+interface IItemGroupFormGroup {
+  value: IGroup['id'][];
+  values: IGroup[];
+  setValueFn: (cb: IGroup['id'][]) => void;
+  disabled: boolean;
 }
 
 const getGroupInfo = (ids: IGroup['id'][], groups: IGroup[] | null) => {
@@ -19,18 +20,19 @@ const getGroupInfo = (ids: IGroup['id'][], groups: IGroup[] | null) => {
   );
 };
 
-const ItemGroupFormGroup: React.FC<IItemGroupFormGroup> = ({
+const ItemGroupFormGroup = ({
   value,
+  values,
   setValueFn,
-}) => {
-  const groups = useContext(GroupsContext);
-
-  const newValue = getGroupInfo(value, groups);
+  disabled,
+}: IItemGroupFormGroup) => {
+  const newValue = getGroupInfo(value, values);
 
   return (
     <FormCheckCardSearch
+      disabled={disabled}
       eventKey="group-search"
-      values={groups || []}
+      values={values || []}
       selected={newValue || []}
       idField="id"
       queryField="title"
@@ -40,4 +42,5 @@ const ItemGroupFormGroup: React.FC<IItemGroupFormGroup> = ({
   );
 };
 
-export default ItemGroupFormGroup;
+ItemGroupFormGroup.whyDidYouRender = true;
+export default memo(ItemGroupFormGroup)
