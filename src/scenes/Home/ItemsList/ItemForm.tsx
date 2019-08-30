@@ -1,97 +1,81 @@
-import React, { useState } from 'react';
-
-import Button from 'react-bootstrap/Button';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import React, { useState, memo, useContext } from 'react';
 import Form from 'react-bootstrap/Form';
-import Spinner from 'react-bootstrap/Spinner';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Tooltip from 'react-bootstrap/Tooltip';
-
-// @ts-ignore
-import PenIcon from 'calcite-ui-icons-react/PenIcon';
-// @ts-ignore
-import TrashIcon from 'calcite-ui-icons-react/TrashIcon';
-
 // Types
-import { TUrbanModelItemData } from '.';
+import { TUrbanModelItemData, AGOLSharingOption, IFolder } from '.';
 // Componnets
-import ItemDataFormGroup from './ItemDataFormGroup';
+import ItemDataFormGroup from '../../../components/ItemDataFormGroup';
+import ItemCardFooter from '../../../components/ItemCardFooter';
+import ItemCardHeader from '../../../components/ItemCardHeader';
+import ItemFolderFormGroup from './ItemFolderFormGroup';
+import FolderContext from './contexts/FolderContext';
+import ItemSharingDiv from './ItemSharingDiv';
 
 type TItemForm<T = TUrbanModelItemData> = {
   value: T;
-  updating: boolean;
-  submitFn: (cb: T) => void;
+  updating?: boolean;
+  submitFn: (cb: T, sharingOption: AGOLSharingOption, folderId: string) => void;
   deleteFn: any;
+  children?: React.ReactNode;
+  sharingOption: AGOLSharingOption;
+  setSharingFn: (cb: AGOLSharingOption) => void;
+  folderId: IFolder['id'];
+  setFolderFn: (cb: IFolder['id']) => void;
 };
-const ItemForm: React.FC<TItemForm> = ({
+
+const ItemForm = ({
   value,
-  updating,
+  updating = false,
   submitFn,
   deleteFn,
-}) => {
+  sharingOption,
+  setSharingFn,
+  folderId,
+  setFolderFn,
+}: TItemForm) => {
   const [disabled, setDisabled] = useState(true);
   const [nValue, setNValue] = useState(value);
 
+  const { folders } = useContext(FolderContext);
+
   return (
     <Form>
-      <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
-        <OverlayTrigger
-          placement="bottom"
-          overlay={<Tooltip id="edit-icon">Edit</Tooltip>}
-        >
-          <Button variant="link" onClick={() => setDisabled((s) => !s)}>
-            <PenIcon />
-          </Button>
-        </OverlayTrigger>
-        <OverlayTrigger
-          placement="bottom"
-          overlay={<Tooltip id="trash-icon">Delete</Tooltip>}
-        >
-          <Button variant="link" onClick={deleteFn}>
-            <TrashIcon />
-          </Button>
-        </OverlayTrigger>
-      </ButtonToolbar>
+      <ItemCardHeader
+        disabled={updating}
+        deleteFn={deleteFn}
+        editFn={() => setDisabled((s) => !s)}
+      />
       <ItemDataFormGroup
         value={nValue}
         setValue={setNValue}
         disabled={disabled || updating}
       />
+      <ItemFolderFormGroup
+        disabled={disabled || updating}
+        values={folders}
+        value={folders && folders.find(({ id }) => id === folderId)}
+        setValueFn={(cb) => setFolderFn(cb)}
+      />
+      <ItemSharingDiv
+        value={sharingOption}
+        setValueFn={setSharingFn}
+        disabled={updating || disabled}
+      />
       {!disabled && (
-        <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
-          <Button
-            disabled={updating}
-            variant="primary"
-            type="submit"
-            onClick={() => {
-              submitFn(nValue);
-            }}
-          >
-            {updating ? (
-              <Spinner
-                as="span"
-                animation="border"
-                size="sm"
-                role="status"
-                aria-hidden="true"
-              />
-            ) : (
-              'Update'
-            )}
-          </Button>
-          <Button
-            disabled={updating}
-            variant="light"
-            onClick={() => {
-              setNValue(value);
-              setDisabled(true);
-            }}
-          >
-            Cancel
-          </Button>
-        </ButtonToolbar>
+        <ItemCardFooter
+          disabled={updating}
+          okFn={() => {
+            submitFn(nValue, sharingOption, folderId);
+          }}
+          cancelFn={() => {
+            setNValue(value);
+            setDisabled(true);
+          }}
+        />
       )}
     </Form>
   );
 };
-export default ItemForm;
+
+// ItemForm.whyDidYouRender = true;
+
+export default memo(ItemForm);
