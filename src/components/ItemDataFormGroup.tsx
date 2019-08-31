@@ -3,6 +3,7 @@ import Form from 'react-bootstrap/Form';
 import Col from 'react-bootstrap/Col';
 
 import { TUrbanModelItemData } from '../scenes/Home/ItemsList';
+import InputPopover from './InputPopover';
 
 const ItemDataFormGroup = ({
   value,
@@ -48,12 +49,31 @@ const ItemDataFormGroup = ({
                   {type}
                 </Form.Label>
                 <Col sm={10}>
-                  <Form.Control
+                  <InputPopover
+                    disabled={disabled}
+                    value={itemId}
+                    setValueFn={({ id }) => {
+                      const nextValue = {
+                        ...value,
+                        [key]: [
+                          ...value[key as 'services'].slice(0, i),
+                          {
+                            type,
+                            itemId: id,
+                          },
+                          ...value[key as 'services'].slice(i + 1),
+                        ],
+                      };
+
+                      setValue(nextValue);
+                    }}
+                    values={[{ title: 'a', id: '321ds' }]}
+                  />
+                  {/* <Form.Control
                     key={type}
                     type="text"
                     disabled={disabled}
                     value={itemId}
-                    title={type}
                     onChange={(e: any) => {
                       const itemId = e.target.value;
                       const nextValue = {
@@ -70,7 +90,7 @@ const ItemDataFormGroup = ({
 
                       setValue(nextValue);
                     }}
-                  />
+                  /> */}
                 </Col>
               </Form.Group>
             ),

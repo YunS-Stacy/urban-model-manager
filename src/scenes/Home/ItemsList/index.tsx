@@ -3,8 +3,6 @@ import { request, IRequestOptions } from '@esri/arcgis-rest-request';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
-
-import FolderContext from './contexts/FolderContext';
 import AccessContext from './contexts/AccessContext';
 
 // Components
@@ -14,10 +12,23 @@ import { IItem, IGroup } from '@esri/arcgis-rest-types';
 import fetchGroups from './utils/fetchGroups';
 import ItemAccordion from './ItemAccordion';
 import fetchFolders from './utils/fetchFolders';
-import { getItemData, getItem, moveItem } from '@esri/arcgis-rest-portal';
+import {
+  getItemData,
+  getItem,
+  moveItem,
+  searchItems,
+  ISearchOptions,
+} from '@esri/arcgis-rest-portal';
 import fetchItemSharing from './utils/fetchItemSharing';
 import unshareItem from './utils/unshareItem';
 import shareItem from './utils/shareItem';
+
+export const DEFAULT_QUERY_FEATURE_SERVICE = `-type: Feature Service`;
+export const INITIAL_SHARING_OPTION: AGOLSharingOption = {
+  groups: [],
+  account: false,
+  everyone: false,
+};
 
 export interface IItemsListChild<T> {
   value?: T | null;
@@ -63,19 +74,14 @@ export interface IAppItem extends IItem {
   updating?: boolean;
 }
 
-const searchItems = (portalUrl: string, params?: IRequestOptions['params']) => {
-  const url = `https://${portalUrl}/sharing/rest/search`;
-  return request(url, {
-    params,
-  });
-};
-
 const ItemsList = () => {
   const { identity } = useContext(IdentityContext);
   const [searchResult, setSearchResult] = useState(
     null as TSearchResult | null,
   );
-
+  const [searchServiceResult, setSearchServiceResult] = useState(
+    null as TSearchResult | null,
+  );
   const [item, setItem] = useState({
     id: '',
     text: null as TUrbanModelItemData | null,
@@ -134,28 +140,42 @@ const ItemsList = () => {
       }
     }
   };
-  const fetchItemsFn = async (queryOptions?: {
-    start?: number;
-    num?: number;
-    sortField?: string;
-  }) => {
+
+  const fetchUrbanModelsFn = async (queryOptions?: Partial<ISearchOptions>) => {
     if (identity && identity.org) {
       const {
-        org: { url },
         user: { username },
       } = identity;
 
-      return searchItems(url, {
+      return searchItems({
         q:
           (searchResult && searchResult.query) ||
-          `type: Urban Model owner: ${username}`,
+          `owner: "${username}" type: "Urban Model"`,
         sortField: 'title',
-        start: searchResult && searchResult.start,
-        num: searchResult && searchResult.num,
+        start: (searchResult && searchResult.start) || 0,
+        num: (searchResult && searchResult.num) || 20,
         ...queryOptions,
         f: 'json',
       })
         .then((res) => setSearchResult(res))
+        .catch((e) => console.error(e));
+    }
+    return null;
+  };
+
+  const fetchServicesFn = async (queryOptions?: Partial<ISearchOptions>) => {
+    if (identity && identity.org) {
+      return searchItems({
+        q:
+          (searchServiceResult && searchServiceResult.query) ||
+          `type: "Feature Service"`,
+        sortField: 'title',
+        start: (searchServiceResult && searchServiceResult.start) || 0,
+        num: (searchServiceResult && searchServiceResult.num) || 20,
+        ...queryOptions,
+        f: 'json',
+      })
+        .then((res) => setSearchServiceResult(res))
         .catch((e) => console.error(e));
     }
     return null;
@@ -166,13 +186,18 @@ const ItemsList = () => {
     if (!(identity && identity.user && identity.org)) {
       setSearchResult(null);
     } else {
-      fetchItemsFn();
       const {
         org: { url: portalUrl },
         user: { username },
       } = identity;
+      fetchUrbanModelsFn();
+
       fetchGroups({ username })
-        .then((v) => setGroups(v))
+        .then((v) => {
+          setGroups(v);
+          // Use groupids to query items
+          fetchServicesFn();
+        })
         .catch((e) => console.error(e));
       fetchFolders({ portalUrl, username })
         .then((v) => {
@@ -217,7 +242,6 @@ const ItemsList = () => {
         );
 
         if (folderId !== (item && item.ownerFolder)) {
-
           await moveItem({
             itemId: item.id,
             authentication: session,
@@ -231,7 +255,9 @@ const ItemsList = () => {
           sharing.everyone !== defaultSharingOption.everyone ||
           sharing.groups.join('') !== defaultSharingOption.groups.join('')
         ) {
-          if (sharing.groups.join('') !== defaultSharingOption.groups.join('')) {
+          if (
+            sharing.groups.join('') !== defaultSharingOption.groups.join('')
+          ) {
             if (defaultSharingOption.groups.length > 0) {
               await unshareItem({
                 username,
@@ -289,7 +315,7 @@ const ItemsList = () => {
         if (searchResult && searchResult.query)
           // Set timeout to refresh
           setTimeout(async () => {
-            fetchItemsFn();
+            fetchUrbanModelsFn();
           }, 1000);
       } catch (error) {
         console.error(error);
@@ -306,32 +332,25 @@ const ItemsList = () => {
       <AccessContext.Provider
         value={{
           groups,
-          sharingOption: defaultSharingOption,
+          folders,
         }}
       >
-        <FolderContext.Provider
-          value={{
-            folders,
-            folderId: item && item.ownerFolder || '',
+        <AddItemAccordion
+          refreshFn={() => {
+            setTimeout(() => {
+              fetchUrbanModelsFn();
+            }, 1000);
           }}
-        >
-          <AddItemAccordion
-            refreshFn={() => {
-              setTimeout(() => {
-                fetchItemsFn();
-              }, 1000);
-            }}
-          />
+        />
 
-          <ItemAccordion
-            values={searchResult && searchResult.results}
-            value={item}
-            defaultSharing={defaultSharingOption}
-            setValueFn={(cb) => setItem(cb)}
-            submitFn={updateFn}
-            deleteFn={deleteFn}
-          />
-        </FolderContext.Provider>
+        <ItemAccordion
+          values={searchResult && searchResult.results}
+          value={item}
+          defaultSharing={defaultSharingOption}
+          setValueFn={(cb) => setItem(cb)}
+          submitFn={updateFn}
+          deleteFn={deleteFn}
+        />
       </AccessContext.Provider>
 
       {searchResult && searchResult.total > 0 ? (
@@ -339,7 +358,7 @@ const ItemsList = () => {
           prevFn={
             searchResult.start > 1
               ? () => {
-                  fetchItemsFn({
+                  fetchUrbanModelsFn({
                     start: searchResult.start - searchResult.num,
                     num: searchResult.num,
                   });
@@ -349,7 +368,7 @@ const ItemsList = () => {
           nextFn={
             searchResult.nextStart > searchResult.start
               ? () => {
-                  fetchItemsFn({
+                  fetchUrbanModelsFn({
                     start: searchResult.nextStart,
                     num: searchResult.num,
                   });
@@ -357,7 +376,7 @@ const ItemsList = () => {
               : null
           }
           pageFn={(n) =>
-            fetchItemsFn({
+            fetchUrbanModelsFn({
               start: n * searchResult.num + 1,
               num: searchResult.num,
             })
@@ -373,7 +392,7 @@ const ItemsList = () => {
         textAlign: 'center',
       }}
     >
-      {identity && identity.user ? 'No results' : 'Please log in'}
+      {'No results'}
     </div>
   );
 };

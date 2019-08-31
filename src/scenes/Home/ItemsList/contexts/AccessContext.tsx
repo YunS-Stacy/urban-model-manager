@@ -1,20 +1,16 @@
 import { createContext } from 'react';
 import { IGroup } from '@esri/arcgis-rest-types';
-import { AGOLSharingOption } from '..';
+import { IFolder } from '..';
 
-export const INITIAL_SHARING_OPTION: AGOLSharingOption = {
-  groups: [],
-  account: false,
-  everyone: false,
-};
+
 type TAccessContext = {
   groups: null | IGroup[];
-  sharingOption: AGOLSharingOption;
+  folders: null | IFolder[];
 };
 
 const AccessContext = createContext({
   groups: null,
-  sharingOption: INITIAL_SHARING_OPTION,
+  folders: null,
 } as TAccessContext);
 
 export const {

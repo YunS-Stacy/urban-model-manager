@@ -49,3 +49,16 @@
   margin-left: 1.25rem !important
 }
 
+/* Calcite Fix */
+.fade {
+  opacity: initial !important;
+}
+
+.input-group .form-control {
+  width: initial !important;
+}
+
+.input-group {
+  display: flex !important;
+
+}

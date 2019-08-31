@@ -9,9 +9,9 @@ import {
   IAppItem,
   AGOLSharingOption,
   TUrbanModelItemData,
+  INITIAL_SHARING_OPTION,
 } from '.';
 import { IItem } from '@esri/arcgis-rest-types';
-import { INITIAL_SHARING_OPTION } from './contexts/AccessContext';
 
 interface IItemAccordion<T = IAppItem> extends IItemsListChild<T> {
   values?: T[] | null;
