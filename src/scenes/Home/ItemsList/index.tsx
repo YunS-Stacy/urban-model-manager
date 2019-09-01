@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, memo } from 'react';
-import { request, IRequestOptions } from '@esri/arcgis-rest-request';
+import { request } from '@esri/arcgis-rest-request';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
@@ -9,7 +9,6 @@ import AccessContext from './contexts/AccessContext';
 import AddItemAccordion from './AddItemAccordion';
 import AppPagination from '../../../components/AppPagination';
 import { IItem, IGroup } from '@esri/arcgis-rest-types';
-import fetchGroups from './utils/fetchGroups';
 import ItemAccordion from './ItemAccordion';
 import fetchFolders from './utils/fetchFolders';
 import {
@@ -79,9 +78,7 @@ const ItemsList = () => {
   const [searchResult, setSearchResult] = useState(
     null as TSearchResult | null,
   );
-  const [searchServiceResult, setSearchServiceResult] = useState(
-    null as TSearchResult | null,
-  );
+
   const [item, setItem] = useState({
     id: '',
     text: null as TUrbanModelItemData | null,
@@ -97,7 +94,6 @@ const ItemsList = () => {
 
   const [folders, setFolders] = useState(null as IFolder[] | null);
 
-  const [groups, setGroups] = useState(null as IGroup[] | null);
   const fetchItem = async () => {
     if (identity && identity.org && item && item.id) {
       setItem((s) => ({ ...s, loading: true }));
@@ -163,24 +159,6 @@ const ItemsList = () => {
     return null;
   };
 
-  const fetchServicesFn = async (queryOptions?: Partial<ISearchOptions>) => {
-    if (identity && identity.org) {
-      return searchItems({
-        q:
-          (searchServiceResult && searchServiceResult.query) ||
-          `type: "Feature Service"`,
-        sortField: 'title',
-        start: (searchServiceResult && searchServiceResult.start) || 0,
-        num: (searchServiceResult && searchServiceResult.num) || 20,
-        ...queryOptions,
-        f: 'json',
-      })
-        .then((res) => setSearchServiceResult(res))
-        .catch((e) => console.error(e));
-    }
-    return null;
-  };
-
   // Fetch items after logged in
   useEffect(() => {
     if (!(identity && identity.user && identity.org)) {
@@ -192,13 +170,6 @@ const ItemsList = () => {
       } = identity;
       fetchUrbanModelsFn();
 
-      fetchGroups({ username })
-        .then((v) => {
-          setGroups(v);
-          // Use groupids to query items
-          fetchServicesFn();
-        })
-        .catch((e) => console.error(e));
       fetchFolders({ portalUrl, username })
         .then((v) => {
           // Add default/root folder
@@ -331,7 +302,6 @@ const ItemsList = () => {
     <>
       <AccessContext.Provider
         value={{
-          groups,
           folders,
         }}
       >

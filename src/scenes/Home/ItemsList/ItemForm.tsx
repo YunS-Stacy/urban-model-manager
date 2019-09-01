@@ -3,7 +3,7 @@ import Form from 'react-bootstrap/Form';
 // Types
 import { TUrbanModelItemData, AGOLSharingOption, IFolder } from '.';
 // Componnets
-import ItemDataFormGroup from '../../../components/ItemDataFormGroup';
+import ItemDataFormGroup from './ItemDataFormGroup';
 import ItemCardFooter from '../../../components/ItemCardFooter';
 import ItemCardHeader from '../../../components/ItemCardHeader';
 import ItemFolderFormGroup from './ItemFolderFormGroup';

@@ -38,9 +38,9 @@ const ItemAccordion = ({
   );  
 
   useEffect(() => {
-    setFolderId((value && value.ownerFolder) || '');
-    setSharingOption(defaultSharing || INITIAL_SHARING_OPTION);
-  }, [value && value.id]);
+    setFolderId(() => (value && value.ownerFolder) || '');
+    setSharingOption(() => defaultSharing || INITIAL_SHARING_OPTION);
+  }, [value && value.ownerFolder]);
 
   const handleDelete = () => deleteFn((value && value.id) as string);
 

@@ -8,6 +8,7 @@ export type TAppPagination<T = ((...cb: any) => void) | null> = {
   pageFn?: T;
   pageCount?: number;
   activePage?: number;
+  [key: string]: any;
 };
 
 const StyledAppPagination = styled(Pagination)`

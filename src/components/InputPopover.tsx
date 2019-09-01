@@ -1,15 +1,18 @@
-import React, { useState, forwardRef, useEffect, memo } from 'react';
-import Popover, { PopoverProps } from 'react-bootstrap/Popover';
+import React, { forwardRef, useEffect, memo } from 'react';
+import Popover from 'react-bootstrap/Popover';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl, { FormControlProps } from 'react-bootstrap/FormControl';
+import Dropdown from 'react-bootstrap/Dropdown';
+import DropdownButton from 'react-bootstrap/DropdownButton';
+import AppPagination, { TAppPagination } from './AppPagination';
+import { IItem } from '@esri/arcgis-rest-types';
 
 const UpdatingPopover = forwardRef<Popover, any>(
   ({ scheduleUpdate, children, ...props }, ref) => {
     useEffect(() => {
-      console.log('updating!');
       scheduleUpdate();
     }, [children, scheduleUpdate]);
     return (
@@ -20,67 +23,107 @@ const UpdatingPopover = forwardRef<Popover, any>(
   },
 );
 
+interface IPopoverListGroup<
+  V = any,
+  O = { id: string; title: string; [key: string]: any }
+> extends TAppPagination {
+  query?: string;
+  setQueryFn?: (cb: string) => void;
+  setValueFn?: (cb: V) => void;
+  values?: V[];
+  option?: O;
+  options?: O[];
+  setOptionFn?: (cb: O) => void;
+}
+
 const PopoverListGroup = memo(
   ({
+    query,
+    setQueryFn,
     values = [],
     setValueFn,
-  }: {
-    values: { id: string; title: string; [key: string]: any }[];
-    setValueFn?: any;
-  }) => {
-    console.log(values, 'valuse');
-    const [query, setQuery] = useState('');
-
-    const filteredItems = values
-      .filter(({ title }) => title.toUpperCase().includes(query.toUpperCase()))
-      .sort((a, b) => (a > b ? -1 : 1));
+    option,
+    options,
+    setOptionFn,
+    prevFn,
+    nextFn,
+    pageFn,
+    activePage,
+    pageCount,
+  }: IPopoverListGroup) => {
+    const filteredItems = values.sort((a, b) => (a > b ? -1 : 1));
 
     return (
       <Popover.Content as={ListGroup}>
-        <InputGroup>
-          <FormControl
-            placeholder="Enter text..."
-            aria-label="search-query"
-            aria-describedby="basic-addon2"
-            onChange={(e: any) => setQuery(e.target.value)}
-          />
-          <InputGroup.Append>
-            <Button variant="outline-secondary">Search</Button>
-          </InputGroup.Append>
-        </InputGroup>
-        {filteredItems.map((v) => (
-          <ListGroup.Item
-            key={v.id}
-            action={true}
-            onClick={() => setValueFn && setValueFn(v)}
-            as={Button}
-          >
-            {v.title}
+        {setQueryFn && (
+          <InputGroup>
+            <FormControl
+              placeholder="Enter text..."
+              aria-label="search-query"
+              aria-describedby="basic-addon"
+              value={query}
+              onChange={(e: any) => setQueryFn(e.target.value)}
+            />
+            {option && options && (
+              <InputGroup.Append>
+                <DropdownButton id="dropdown-basic-button" title={option.title} variant="light">
+                  {options.map((s) => (
+                    <Dropdown.Item
+                      key={s.id}
+                      href={`#/action-${s.id}`}
+                      style={{ textTransform: 'capitalize' }}
+                      onClick={() => setOptionFn && setOptionFn(s)}
+                      disabled={option.id === s.id}
+                    >
+                      {s.title}
+                    </Dropdown.Item>
+                  ))}
+                </DropdownButton>
+              </InputGroup.Append>
+            )}
+          </InputGroup>
+        )}
+        {filteredItems.length > 0 ? (
+          filteredItems.map((v) => (
+            <ListGroup.Item
+              key={v.id}
+              action={true}
+              onClick={() => setValueFn && setValueFn(v)}
+              as={Button}
+            >
+              {v.title}
+            </ListGroup.Item>
+          ))
+        ) : (
+          <ListGroup.Item as={Button} disabled={true}>
+            No results
           </ListGroup.Item>
-        ))}
+        )}
+        {activePage && (
+          <AppPagination
+            prevFn={prevFn}
+            nextFn={nextFn}
+            pageFn={pageFn}
+            activePage={activePage}
+            pageCount={pageCount}
+          />
+        )}
       </Popover.Content>
     );
   },
 );
 
-interface IInputPopover<
-  T = {
-    title: string;
-    id: string;
-    [key: string]: any;
-  }
-> {
+export interface IInputPopover extends IPopoverListGroup {
   disabled?: boolean;
-  value?: FormControlProps['value'];
-  setValueFn?: (cb: T) => void;
-  values?: T[];
+  value: FormControlProps['value'];
+  setValueFn: (cb: FormControlProps['value']) => void;
 }
 
 const InputPopover = ({
   disabled = false,
-  values = [],
   value = '',
   setValueFn = (_) => null,
+  ...rest
 }: IInputPopover) => {
   return (
     <InputGroup>
@@ -95,9 +138,13 @@ const InputPopover = ({
       <OverlayTrigger
         trigger="click"
         placement="right"
+        rootClose={true}
         overlay={
           <UpdatingPopover id="list">
-            <PopoverListGroup values={values} setValueFn={setValueFn} />
+            <PopoverListGroup
+              {...rest}
+              setValueFn={(v: IItem) => setValueFn(v.id)}
+            />
           </UpdatingPopover>
         }
       >

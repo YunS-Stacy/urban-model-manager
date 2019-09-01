@@ -11,7 +11,7 @@ import PlusIcon from 'calcite-ui-icons-react/PlusIcon';
 // Types
 import { TUrbanModelItemData, INITIAL_SHARING_OPTION } from '.';
 // Components
-import ItemDataFormGroup from '../../../components/ItemDataFormGroup';
+import ItemDataFormGroup from './ItemDataFormGroup';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
