@@ -39,10 +39,14 @@
 
 .popover {
   max-height: 50vh !important;
-  max-width: 40vw !important;
-  overflow-x:hidden;
+  width: 40vw !important;
+  overflow-x: hidden;
   overflow-y: auto;
+}
+
+.list-group-item {
   text-overflow: ellipsis;
+  overflow-x: hidden;
 }
 
 .form-check-input {

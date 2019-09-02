@@ -66,12 +66,11 @@ const queryItems = async ({
 
   try {
     const res = await searchItems({
-      q:
-        `${query} type: "Feature Service" 
+      q: `${query} type: "Feature Service" 
           ${getLocationQuery(user, locationOption)}`,
       sortField: 'title',
-      start: (searchResult && searchResult.start) || 0,
-      num: (searchResult && searchResult.num) || 20,
+      start: (searchResult && searchResult && searchResult.start) || 0,
+      num: (searchResult && searchResult && searchResult.num) || 20,
       f: 'json',
     });
     return res;
@@ -89,19 +88,22 @@ const ItemDataInputPopover: React.FC<IItemDataInputPopover> = (props) => {
   > | null);
 
   const { identity } = useContext(IdentityContext);
-    
-  useEffect(() => {    
+
+  useEffect(() => {
     queryItems({
       query,
       searchResult,
       user: identity && identity.user,
       locationOption: option,
     })
-      .then(res => setSearchResult(() => res))
+      .then((res) => setSearchResult(() => res))
       .catch((e) => console.error(e));
-
   }, [query, option.id]);
 
+  console.log(
+    !searchResult ? 0 : Math.floor(searchResult.start / searchResult.num),
+  );
+  
   return (
     <InputPopover
       {...props}
@@ -110,7 +112,57 @@ const ItemDataInputPopover: React.FC<IItemDataInputPopover> = (props) => {
       option={option}
       options={QUERY_LOCATIONS}
       setOptionFn={setOption}
-      values={(searchResult && searchResult.results) || []}
+      values={(searchResult && searchResult && searchResult.results) || []}
+      prevFn={
+        searchResult && searchResult.start > searchResult.num
+          ? () => {
+              queryItems({
+                query,
+                searchResult: {
+                  ...searchResult,
+                  start: searchResult.start - searchResult.num,
+                },
+                user: identity && identity.user,
+                locationOption: option,
+              }).then(setSearchResult).catch(console.error);
+            }
+          : null
+      }
+      nextFn={
+        searchResult && searchResult.nextStart > searchResult.start
+          ? () => {
+              queryItems({
+                query,
+                searchResult: {
+                  ...searchResult,
+                  start: searchResult && searchResult.nextStart,
+                },
+                user: identity && identity.user,
+                locationOption: option,
+              }).then(setSearchResult).catch(console.error);
+            }
+          : null
+      }
+      pageFn={
+        !searchResult
+          ? null
+          : (n) =>
+              queryItems({
+                query,
+                searchResult: {
+                  ...searchResult,
+                  start: n * searchResult.num + 1,
+                },
+                user: identity && identity.user,
+                locationOption: option,
+              }).then(setSearchResult).catch(console.error)
+      }
+      activePage={
+        !searchResult ? 0 : Math.floor(searchResult.start / searchResult.num)
+      }
+      pageCount={
+        !searchResult ? 0 : Math.ceil(searchResult.total / searchResult.num)
+      }
     />
   );
 };

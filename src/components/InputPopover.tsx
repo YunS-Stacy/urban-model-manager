@@ -55,6 +55,25 @@ const PopoverListGroup = memo(
 
     return (
       <Popover.Content as={ListGroup}>
+        {option && options && (
+            <DropdownButton
+              id="dropdown-basic-button"
+              title={option.title}
+              variant="light"
+            >
+              {options.map((s) => (
+                <Dropdown.Item
+                  key={s.id}
+                  href={`#/action-${s.id}`}
+                  style={{ textTransform: 'capitalize' }}
+                  onClick={() => setOptionFn && setOptionFn(s)}
+                  disabled={option.id === s.id}
+                >
+                  {s.title}
+                </Dropdown.Item>
+              ))}
+            </DropdownButton>
+        )}
         {setQueryFn && (
           <InputGroup>
             <FormControl
@@ -64,23 +83,6 @@ const PopoverListGroup = memo(
               value={query}
               onChange={(e: any) => setQueryFn(e.target.value)}
             />
-            {option && options && (
-              <InputGroup.Append>
-                <DropdownButton id="dropdown-basic-button" title={option.title} variant="light">
-                  {options.map((s) => (
-                    <Dropdown.Item
-                      key={s.id}
-                      href={`#/action-${s.id}`}
-                      style={{ textTransform: 'capitalize' }}
-                      onClick={() => setOptionFn && setOptionFn(s)}
-                      disabled={option.id === s.id}
-                    >
-                      {s.title}
-                    </Dropdown.Item>
-                  ))}
-                </DropdownButton>
-              </InputGroup.Append>
-            )}
           </InputGroup>
         )}
         {filteredItems.length > 0 ? (
@@ -99,15 +101,13 @@ const PopoverListGroup = memo(
             No results
           </ListGroup.Item>
         )}
-        {activePage && (
-          <AppPagination
-            prevFn={prevFn}
-            nextFn={nextFn}
-            pageFn={pageFn}
-            activePage={activePage}
-            pageCount={pageCount}
-          />
-        )}
+        <AppPagination
+          prevFn={prevFn}
+          nextFn={nextFn}
+          pageFn={pageFn}
+          activePage={activePage}
+          pageCount={pageCount}
+        />
       </Popover.Content>
     );
   },

@@ -326,7 +326,7 @@ const ItemsList = () => {
       {searchResult && searchResult.total > 0 ? (
         <AppPagination
           prevFn={
-            searchResult.start > 1
+            searchResult.start > searchResult.num
               ? () => {
                   fetchUrbanModelsFn({
                     start: searchResult.start - searchResult.num,
