@@ -1,32 +1,47 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { request, IRequestOptions } from '@esri/arcgis-rest-request';
-
-import Button from 'react-bootstrap/Button';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-
-import Accordion from 'react-bootstrap/Accordion';
-import Card from 'react-bootstrap/Card';
-import Form from 'react-bootstrap/Form';
-import Spinner from 'react-bootstrap/Spinner';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Tooltip from 'react-bootstrap/Tooltip';
-
-// @ts-ignore
-import PenIcon from 'calcite-ui-icons-react/PenIcon';
-// @ts-ignore
-import TrashIcon from 'calcite-ui-icons-react/TrashIcon';
+import React, { useContext, useState, useEffect, memo } from 'react';
+import { request } from '@esri/arcgis-rest-request';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
+import AccessContext from './contexts/AccessContext';
+
+// Components
 import AddItemAccordion from './AddItemAccordion';
-import ItemDataFormGroup from './ItemDataFormGroup';
+import AppPagination from '../../../components/AppPagination';
+import { IItem, IGroup } from '@esri/arcgis-rest-types';
+import ItemAccordion from './ItemAccordion';
+import fetchFolders from './utils/fetchFolders';
+import {
+  getItemData,
+  getItem,
+  moveItem,
+  searchItems,
+  ISearchOptions,
+} from '@esri/arcgis-rest-portal';
+import fetchItemSharing from './utils/fetchItemSharing';
+import unshareItem from './utils/unshareItem';
+import shareItem from './utils/shareItem';
+
+export const DEFAULT_QUERY_FEATURE_SERVICE = `-type: Feature Service`;
+export const INITIAL_SHARING_OPTION: AGOLSharingOption = {
+  groups: [],
+  account: false,
+  everyone: false,
+};
+
+export interface IItemsListChild<T> {
+  value?: T | null;
+  setValueFn: (cb: T) => void;
+  values?: T | T[] | null;
+  disabled?: boolean;
+}
 
 export type TUrbanModelItemData = {
   version: string;
   services: [
     { type: 'master'; itemId: string },
     { type: 'design'; itemId: string },
-    { type: 'master-view'; itemId: string }
+    { type: 'master-view'; itemId: string },
   ];
 };
 
@@ -34,22 +49,29 @@ type TSearchResult = {
   nextStart: number;
   num: number;
   query: string;
-  results: {
-    title: string;
-    id: string;
-    [key: string]: any;
-  }[];
+  results: IItem[];
   start: number;
   total: number;
 };
 
-const searchItems = (portalUrl: string, params?: IRequestOptions['params']) => {
-  const url = `https://${portalUrl}/sharing/rest/search`;
+export interface AGOLSharingOption {
+  groups: string[];
+  account: boolean;
+  everyone: boolean;
+}
 
-  return request(url, {
-    params,
-  });
-};
+export interface IFolder {
+  created: number;
+  id: string;
+  title: string;
+  username: string;
+}
+export interface IAppItem extends IItem {
+  ownerFolder?: string;
+  text?: TUrbanModelItemData | null;
+  loading?: boolean;
+  updating?: boolean;
+}
 
 const ItemsList = () => {
   const { identity } = useContext(IdentityContext);
@@ -59,60 +81,129 @@ const ItemsList = () => {
 
   const [item, setItem] = useState({
     id: '',
-    content: null as TUrbanModelItemData | null,
+    text: null as TUrbanModelItemData | null,
     loading: false,
     updating: false,
-  });
+  } as IAppItem);
+
+  const [defaultSharingOption, setDefaultSharingOption] = React.useState({
+    groups: [],
+    account: false,
+    everyone: false,
+  } as AGOLSharingOption);
+
+  const [folders, setFolders] = useState(null as IFolder[] | null);
+
+  const fetchItem = async () => {
+    if (identity && identity.org && item && item.id) {
+      setItem((s) => ({ ...s, loading: true }));
+
+      const {
+        org: { url: portalUrl },
+      } = identity;
+
+      try {
+        const res = await getItem(item.id);
+
+        // Sharing Option
+        const sharing = await fetchItemSharing({
+          portalUrl,
+          username: res.owner,
+          itemId: res.id,
+        });
+        if (!sharing) return;
+        const { access, groups } = sharing;
+        setDefaultSharingOption((s) => ({
+          ...s,
+          groups,
+          everyone: access === 'public',
+          account: access === 'org',
+        }));
+
+        // Data
+        const text = await getItemData(item.id);
+        setItem((s) => ({
+          ...s,
+          ...res,
+          ownerFolder: res.ownerFolder || '',
+          text,
+          loading: false,
+        }));
+      } catch (error) {
+        console.error(error);
+
+        setItem((s) => ({ ...s, loading: false }));
+      }
+    }
+  };
+
+  const fetchUrbanModelsFn = async (queryOptions?: Partial<ISearchOptions>) => {
+    if (identity && identity.org) {
+      const {
+        user: { username },
+      } = identity;
+
+      return searchItems({
+        q:
+          (searchResult && searchResult.query) ||
+          `owner: "${username}" type: "Urban Model"`,
+        sortField: 'title',
+        start: (searchResult && searchResult.start) || 0,
+        num: (searchResult && searchResult.num) || 20,
+        ...queryOptions,
+        f: 'json',
+      })
+        .then((res) => setSearchResult(res))
+        .catch((e) => console.error(e));
+    }
+    return null;
+  };
 
   // Fetch items after logged in
   useEffect(() => {
-    if (!(identity && identity.user)) {
-      return setSearchResult(null);
+    if (!(identity && identity.user && identity.org)) {
+      setSearchResult(null);
+    } else {
+      const {
+        org: { url: portalUrl },
+        user: { username },
+      } = identity;
+      fetchUrbanModelsFn();
+
+      fetchFolders({ portalUrl, username })
+        .then((v) => {
+          // Add default/root folder
+          setFolders([{ id: '', title: 'Default' }, ...(v || [])]);
+        })
+        .catch((e) => console.error(e));
     }
-
-    const {
-      org: { url },
-      user: { username },
-    } = identity;
-
-    searchItems(url, {
-      q: `type: Urban Model owner: ${username}`,
-      f: 'json',
-    })
-      .then(res => setSearchResult(res))
-      .catch(error => console.error(error));
-  }, [identity]);
+  }, [identity && identity.user && identity.user.username]);
 
   // Fetch item detail
   useEffect(() => {
     if (identity && item.id) {
-      const {
-        org: { url },
-      } = identity;
-      setItem(s => ({ ...s, loading: true }));
-      request(`https://${url}/sharing/rest/content/items/${item.id}/data`).then(
-        (content: TUrbanModelItemData) => {
-          setItem(s => ({ ...s, content, loading: false }));
-        },
-      );
+      fetchItem();
     }
   }, [identity, item.id]);
 
-  const submitFn = async (cb: TUrbanModelItemData) => {
+  const updateFn = async (
+    cb: TUrbanModelItemData,
+    sharing: AGOLSharingOption,
+    folderId: IFolder['id'],
+  ) => {
     if (identity && item.id && cb) {
-      setItem(s => ({
+      setItem((s) => ({
         ...s,
         updating: true,
       }));
       const {
-        org: { url },
+        org: { url: portalUrl },
         user: { username },
+        session,
       } = identity;
       try {
         await request(
-          `https://${url}/sharing/rest/content/users/${username}/items/${
-            item.id
-          }/update`,
+          `https://${portalUrl}/sharing/rest/content/users/${username}/items/${item.id}/update`,
           {
             params: {
               text: JSON.stringify(cb),
@@ -121,14 +212,48 @@ const ItemsList = () => {
           },
         );
 
-        setItem(s => ({
+        if (folderId !== (item && item.ownerFolder)) {
+          await moveItem({
+            itemId: item.id,
+            authentication: session,
+            folderId,
+          });
+        }
+
+        // Diff sharing
+        if (
+          sharing.account !== defaultSharingOption.account ||
+          sharing.everyone !== defaultSharingOption.everyone ||
+          sharing.groups.join('') !== defaultSharingOption.groups.join('')
+        ) {
+          if (
+            sharing.groups.join('') !== defaultSharingOption.groups.join('')
+          ) {
+            if (defaultSharingOption.groups.length > 0) {
+              await unshareItem({
+                username,
+                portalUrl,
+                itemId: item.id,
+                groups: sharing.groups,
+              });
+            }
+          }
+
+          await shareItem({
+            portalUrl,
+            username,
+            itemId: item.id,
+            sharingOption: sharing,
+          });
+        }
+        setItem((s) => ({
           ...s,
-          content: cb,
           updating: false,
         }));
+        await fetchItem();
       } catch (error) {
         console.error(error);
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           updating: false,
         }));
@@ -138,7 +263,7 @@ const ItemsList = () => {
 
   const deleteFn = async (itemId: string) => {
     if (identity && itemId) {
-      setItem(s => ({
+      setItem((s) => ({
         ...s,
         loading: true,
       }));
@@ -148,113 +273,88 @@ const ItemsList = () => {
       } = identity;
       try {
         await request(
-          `https://${url}/sharing/rest/content/users/${username}/items/${
-            item.id
-          }/delete`,
+          `https://${url}/sharing/rest/content/users/${username}/items/${item.id}/delete`,
         );
 
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           id: '',
-          content: null,
+          text: null,
           loading: false,
         }));
 
         if (searchResult && searchResult.query)
-          // Sset timeout to refresh
+          // Set timeout to refresh
           setTimeout(async () => {
-            try {
-              // Set timeout to f
-              const res = await searchItems(url, {
-                q: searchResult.query,
-                f: 'json',
-              });
-              setSearchResult(res);
-            } catch (error) {
-              console.error(error);
-            }
+            fetchUrbanModelsFn();
           }, 1000);
       } catch (error) {
         console.error(error);
-        setItem(s => ({
+        setItem((s) => ({
           ...s,
           loading: false,
         }));
       }
     }
   };
+
   return searchResult && searchResult.results.length > 0 ? (
     <>
-      <AddItemAccordion
-        refreshFn={() => {
-          setTimeout(() => {
-            if (
-              identity &&
-              identity.session &&
-              searchResult &&
-              searchResult.query
-            ) {
-              const {
-                org: { url },
-              } = identity;
-              searchItems(url, {
-                q: searchResult.query,
-                f: 'json',
-              })
-                .then(res => setSearchResult(res))
-                .catch(e => console.error(e));
-            }
-          }, 1000);
+      <AccessContext.Provider
+        value={{
+          folders,
         }}
-      />
+      >
+        <AddItemAccordion
+          refreshFn={() => {
+            setTimeout(() => {
+              fetchUrbanModelsFn();
+            }, 1000);
+          }}
+        />
 
-      <Accordion activeKey={item.id}>
-        {searchResult &&
-          searchResult.results.map(({ id, title }) => (
-            <Card key={id}>
-              <Card.Header>
-                <Accordion.Toggle
-                  as={Button}
-                  variant="link"
-                  eventKey={id}
-                  onClick={() =>
-                    item.id === id
-                      ? // Toggle off
-                        setItem(s => ({ ...s, id: '', content: null }))
-                      : // Switch
-                        setItem(s => ({
-                          ...s,
-                          id,
-                          content: null,
-                        }))
-                  }
-                >
-                  {title}
-                </Accordion.Toggle>
-              </Card.Header>
-              <Accordion.Collapse eventKey={id}>
-                <Card.Body>
-                  {item.loading ? (
-                    <div
-                      style={{ display: 'flex', justifyContent: 'center' }}
-                    >
-                      <Spinner animation="border" />
-                    </div>
-                  ) : (
-                    item.content && (
-                      <UrbanModelItemForm
-                        value={item.content}
-                        updating={item.updating}
-                        submitFn={cb => submitFn(cb)}
-                        deleteFn={() => deleteFn(item.id)}
-                      />
-                    )
-                  )}
-                </Card.Body>
-              </Accordion.Collapse>
-            </Card>
-          ))}
-      </Accordion>
+        <ItemAccordion
+          values={searchResult && searchResult.results}
+          value={item}
+          defaultSharing={defaultSharingOption}
+          setValueFn={(cb) => setItem(cb)}
+          submitFn={updateFn}
+          deleteFn={deleteFn}
+        />
+      </AccessContext.Provider>
+
+      {searchResult && searchResult.total > 0 ? (
+        <AppPagination
+          prevFn={
+            searchResult.start > searchResult.num
+              ? () => {
+                  fetchUrbanModelsFn({
+                    start: searchResult.start - searchResult.num,
+                    num: searchResult.num,
+                  });
+                }
+              : null
+          }
+          nextFn={
+            searchResult.nextStart > searchResult.start
+              ? () => {
+                  fetchUrbanModelsFn({
+                    start: searchResult.nextStart,
+                    num: searchResult.num,
+                  });
+                }
+              : null
+          }
+          pageFn={(n) =>
+            fetchUrbanModelsFn({
+              start: n * searchResult.num + 1,
+              num: searchResult.num,
+            })
+          }
+          activePage={Math.floor(searchResult.start / searchResult.num)}
+          pageCount={Math.ceil(searchResult.total / searchResult.num)}
+        />
+      ) : null}
     </>
   ) : (
     <div
@@ -262,151 +362,9 @@ const ItemsList = () => {
         textAlign: 'center',
       }}
     >
-      {identity && identity.user ? 'No results' : 'Please log in'}
+      {'No results'}
     </div>
   );
 };
 
-const UrbanModelItemForm = ({
-  value,
-  updating,
-  submitFn,
-  deleteFn,
-}: {
-  value: TUrbanModelItemData;
-  updating: boolean;
-  submitFn: (cb: TUrbanModelItemData) => void;
-  deleteFn: any;
-}) => {
-  const [disabled, setDisabled] = useState(true);
-  const [nValue, setNValue] = useState(value);
-
-  return (
-    <Form>
-      <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
-        <OverlayTrigger
-          placement="bottom"
-          overlay={<Tooltip id="edit-icon">Edit</Tooltip>}
-        >
-          <Button variant="link" onClick={() => setDisabled(s => !s)}>
-            <PenIcon />
-          </Button>
-        </OverlayTrigger>
-        <OverlayTrigger
-          placement="bottom"
-          overlay={<Tooltip id="trash-icon">Delete</Tooltip>}
-        >
-          <Button variant="link" onClick={deleteFn}>
-            <TrashIcon />
-          </Button>
-        </OverlayTrigger>
-      </ButtonToolbar>
-      <ItemDataFormGroup
-        value={nValue}
-        setValue={setNValue}
-        disabled={disabled || updating}
-      />
-
-      {/* {(['version', 'services'] as (keyof TUrbanModelItemData)[]).map(key => (
-        <Form.Group controlId={`data${key}`} key={key}>
-          <Form.Label
-            style={{
-              textTransform: 'capitalize',
-            }}
-          >
-            {key}
-          </Form.Label>
-          {typeof nValue[key] === 'string' ? (
-            <Form.Control
-              type="text"
-              value={nValue[key] as string}
-              readOnly={true}
-            />
-          ) : (
-            (nValue[key] as typeof value['services']).map(
-              ({ type, itemId }, i) => (
-                <Form.Group
-                  as={Form.Row}
-                  controlId={`data${key}${type}`}
-                  key={type}
-                >
-                  <Form.Label
-                    style={{
-                      textTransform: 'capitalize',
-                      textAlign: 'right',
-                    }}
-                    column={true}
-                    sm={2}
-                  >
-                    {type}
-                  </Form.Label>
-                  <Col sm={10}>
-                    <Form.Control
-                      key={type}
-                      type="text"
-                      disabled={disabled || updating}
-                      value={itemId}
-                      title={type}
-                      onChange={(e: any) => {
-                        const nextValue = {
-                          ...nValue,
-                          [key]: [
-                            ...nValue[key as 'services'].slice(0, i),
-                            {
-                              type,
-                              itemId: e.target.value,
-                            },
-                            ...nValue[key as 'services'].slice(i + 1),
-                          ],
-                        };
-
-                        setNValue(nextValue);
-                      }}
-                    />
-                  </Col>
-                </Form.Group>
-              ),
-            )
-          )}
-        </Form.Group>
-      ))} */}
-
-      {!disabled && (
-        <ButtonToolbar style={{ justifyContent: 'flex-end' }}>
-          <Button
-            disabled={updating}
-            variant="primary"
-            type="submit"
-            onClick={() => {
-              submitFn(nValue);
-            }}
-          >
-            {updating ? (
-              <Spinner
-                as="span"
-                animation="border"
-                size="sm"
-                role="status"
-                aria-hidden="true"
-              />
-            ) : (
-              'Update'
-            )}
-          </Button>
-          <Button
-            disabled={updating}
-            variant="light"
-            onClick={() => {
-              setNValue(value);
-              setDisabled(true);
-            }}
-          >
-            Cancel
-          </Button>
-        </ButtonToolbar>
-      )}
-    </Form>
-  );
-};
-
-export default ItemsList;
+export default memo(ItemsList);

@@ -33,6 +33,43 @@
 }
 
 /* Bootstrap Fix */
-.accordion>.card:first-of-type {
-  border-bottom: 1px solid rgba(0,0,0,.125);
+.accordion > .card:first-of-type {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.popover {
+  max-height: 50vh !important;
+  width: 40vw !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.list-group-item {
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+}
+
+.form-check-input {
+  position: absolute;
+  margin-top: 0.3rem !important;
+  margin-left: -1.25rem !important;
+  margin-right: -1.25rem !important;
+}
+
+.form-check-label {
+  font-weight: initial !important;
+  margin-left: 1.25rem !important;
+}
+
+/* Calcite Fix */
+.fade {
+  opacity: initial !important;
+}
+
+.input-group .form-control {
+  width: initial !important;
+}
+
+.input-group {
+  display: flex !important;
 }

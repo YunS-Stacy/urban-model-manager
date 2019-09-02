@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { setDefaultRequestOptions } from '@esri/arcgis-rest-request';
+
 import Layout, { Header, Body, Content } from '../../components/Layout';
 import {
   IdentityProvider,
@@ -6,7 +8,6 @@ import {
 } from '../contexts/IdentityContext';
 import TopNavbar from './TopNavbar';
 import ItemsList from './ItemsList';
-import { setDefaultRequestOptions } from '@esri/arcgis-rest-request';
 
 const Home = () => {
   const setIdentity = (cb: any) => {
@@ -15,7 +16,6 @@ const Home = () => {
         authentication: cb.session,
       });
     }
-
     setIdentityState({ ...identityState, identity: cb });
   };
 
@@ -32,7 +32,19 @@ const Home = () => {
         </Header>
         <Body>
           <Content>
-            <ItemsList />
+            {identityState &&
+            identityState.identity &&
+            identityState.identity.user ? (
+              <ItemsList />
+            ) : (
+              <div
+                style={{
+                  textAlign: 'center',
+                }}
+              >
+                {'Please log in'}
+              </div>
+            )}
           </Content>
         </Body>
       </Layout>
