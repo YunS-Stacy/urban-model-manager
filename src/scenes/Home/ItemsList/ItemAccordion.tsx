@@ -9,9 +9,9 @@ import {
   IAppItem,
   AGOLSharingOption,
   TUrbanModelItemData,
+  INITIAL_SHARING_OPTION,
 } from '.';
 import { IItem } from '@esri/arcgis-rest-types';
-import { INITIAL_SHARING_OPTION } from './contexts/AccessContext';
 
 interface IItemAccordion<T = IAppItem> extends IItemsListChild<T> {
   values?: T[] | null;
@@ -38,9 +38,9 @@ const ItemAccordion = ({
   );  
 
   useEffect(() => {
-    setFolderId((value && value.ownerFolder) || '');
-    setSharingOption(defaultSharing || INITIAL_SHARING_OPTION);
-  }, [value && value.id]);
+    setFolderId(() => (value && value.ownerFolder) || '');
+    setSharingOption(() => defaultSharing || INITIAL_SHARING_OPTION);
+  }, [value && value.ownerFolder]);
 
   const handleDelete = () => deleteFn((value && value.id) as string);
 

@@ -32,7 +32,19 @@ const Home = () => {
         </Header>
         <Body>
           <Content>
-            <ItemsList />
+            {identityState &&
+            identityState.identity &&
+            identityState.identity.user ? (
+              <ItemsList />
+            ) : (
+              <div
+                style={{
+                  textAlign: 'center',
+                }}
+              >
+                {'Please log in'}
+              </div>
+            )}
           </Content>
         </Body>
       </Layout>

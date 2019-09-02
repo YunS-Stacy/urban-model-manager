@@ -44,7 +44,7 @@ const FormCheckCardSearch = ({
     if (!queryField) return;
     
     if (!query) {
-      setSortedValues(values);
+      setSortedValues(() => values);
     } else {
       const newSorted = flattenArrays(
         divideItemsByQuery(sortedValues, query, queryField).map((el) =>
@@ -52,7 +52,7 @@ const FormCheckCardSearch = ({
         ),
       );
 
-      setSortedValues(newSorted);
+      setSortedValues(() => newSorted);
     }
   }, [query, queryField]);
 
@@ -65,7 +65,7 @@ const FormCheckCardSearch = ({
     } else {
       checkRef.current.indeterminate = false;
     }
-  }, [selected && selected.length]);
+  }, [selected.length, values.length]);
 
   const checkRef = useRef(null as null | HTMLInputElement);
 

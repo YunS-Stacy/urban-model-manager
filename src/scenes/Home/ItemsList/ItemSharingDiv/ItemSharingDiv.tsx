@@ -3,7 +3,6 @@ import FormCheck from 'react-bootstrap/FormCheck';
 import { IGroup } from '@esri/arcgis-rest-types';
 import FormLabel from 'react-bootstrap/FormLabel';
 import IdentityContext from '../../../contexts/IdentityContext';
-import AccessContext from '../contexts/AccessContext';
 import ItemGroupFormGroup from './ItemGroupFormGroup';
 import { AGOLSharingOption } from '..';
 
@@ -14,8 +13,6 @@ type TItemSharingDiv = {
 };
 const ItemSharingDiv = ({ value, disabled, setValueFn }: TItemSharingDiv) => {
   const { identity } = useContext(IdentityContext);
-
-  const { groups } = useContext(AccessContext);
 
   const handleUpdateGroups = (groups: IGroup['id'][]) => {
     setValueFn({
@@ -55,7 +52,7 @@ const ItemSharingDiv = ({ value, disabled, setValueFn }: TItemSharingDiv) => {
       />
       <ItemGroupFormGroup
         value={value.groups}
-        values={groups || []}
+        values={(identity && identity.user.groups) || []}
         disabled={disabled}
         setValueFn={handleUpdateGroups}
       />

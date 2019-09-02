@@ -3,7 +3,6 @@ import React, { memo } from 'react';
 import Button from 'react-bootstrap/Button';
 import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 import Spinner from 'react-bootstrap/Spinner';
-import Card from 'react-bootstrap/Card';
 import styled from 'styled-components';
 
 interface IItemCardFooter {

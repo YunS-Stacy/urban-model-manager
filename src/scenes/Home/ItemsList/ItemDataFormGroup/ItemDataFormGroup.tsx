@@ -2,7 +2,8 @@ import React from 'react';
 import Form from 'react-bootstrap/Form';
 import Col from 'react-bootstrap/Col';
 
-import { TUrbanModelItemData } from '../scenes/Home/ItemsList';
+import { TUrbanModelItemData } from '..';
+import ItemDataInputPopover from './ItemDataInputPopover';
 
 const ItemDataFormGroup = ({
   value,
@@ -48,29 +49,33 @@ const ItemDataFormGroup = ({
                   {type}
                 </Form.Label>
                 <Col sm={10}>
-                  <Form.Control
-                    key={type}
-                    type="text"
-                    disabled={disabled}
-                    value={itemId}
-                    title={type}
-                    onChange={(e: any) => {
-                      const itemId = e.target.value;
-                      const nextValue = {
-                        ...value,
-                        [key]: [
-                          ...value[key as 'services'].slice(0, i),
-                          {
-                            type,
-                            itemId,
-                          },
-                          ...value[key as 'services'].slice(i + 1),
-                        ],
-                      };
+                  {disabled ? (
+                    <Form.Control
+                      disabled={disabled}
+                      placeholder={'<null>'}
+                      value={itemId}
+                    />
+                  ) : (
+                    <ItemDataInputPopover
+                      disabled={disabled}
+                      value={itemId}
+                      setValueFn={(v) => {
+                        const nextValue = {
+                          ...value,
+                          [key]: [
+                            ...value[key as 'services'].slice(0, i),
+                            {
+                              type,
+                              itemId: v,
+                            },
+                            ...value[key as 'services'].slice(i + 1),
+                          ],
+                        };
 
-                      setValue(nextValue);
-                    }}
-                  />
+                        setValue(nextValue);
+                      }}
+                    />
+                  )}
                 </Col>
               </Form.Group>
             ),

@@ -9,19 +9,20 @@ import Form from 'react-bootstrap/Form';
 // @ts-ignore
 import PlusIcon from 'calcite-ui-icons-react/PlusIcon';
 // Types
-import { TUrbanModelItemData } from '.';
+import { TUrbanModelItemData, INITIAL_SHARING_OPTION } from '.';
 // Components
-import ItemDataFormGroup from '../../../components/ItemDataFormGroup';
+import ItemDataFormGroup from './ItemDataFormGroup';
 
 // Contexts
 import IdentityContext from '../../contexts/IdentityContext';
 import ItemFolderFormGroup from './ItemFolderFormGroup';
 import ItemSharingDiv from './ItemSharingDiv';
 import ItemCardFooter from '../../../components/ItemCardFooter';
-import FolderContext from './contexts/FolderContext';
-import { INITIAL_SHARING_OPTION } from './contexts/AccessContext';
+import AccessContext from './contexts/AccessContext';
 import shareItem from './utils/shareItem';
 import { ICreateItemResponse } from '@esri/arcgis-rest-portal';
+
+
 
 const INITIAL_VALUE: TUrbanModelItemData = {
   version: '1.0.5',
@@ -81,7 +82,7 @@ const AddItemAccordion = ({
   const [item, setItem] = useState(INITIAL_ITEM);
   const [activeKey, setActiveKey] = useState('');
 
-  const { folders } = useContext(FolderContext);
+  const { folders } = useContext(AccessContext);
   const [folderId, setFolderId] = useState('');
 
   const [sharingOption, setSharingOption] = useState(INITIAL_SHARING_OPTION);

@@ -3,11 +3,11 @@ import Form from 'react-bootstrap/Form';
 // Types
 import { TUrbanModelItemData, AGOLSharingOption, IFolder } from '.';
 // Componnets
-import ItemDataFormGroup from '../../../components/ItemDataFormGroup';
+import ItemDataFormGroup from './ItemDataFormGroup';
 import ItemCardFooter from '../../../components/ItemCardFooter';
 import ItemCardHeader from '../../../components/ItemCardHeader';
 import ItemFolderFormGroup from './ItemFolderFormGroup';
-import FolderContext from './contexts/FolderContext';
+import AccessContext from './contexts/AccessContext';
 import ItemSharingDiv from './ItemSharingDiv';
 
 type TItemForm<T = TUrbanModelItemData> = {
@@ -35,7 +35,7 @@ const ItemForm = ({
   const [disabled, setDisabled] = useState(true);
   const [nValue, setNValue] = useState(value);
 
-  const { folders } = useContext(FolderContext);
+  const { folders } = useContext(AccessContext);
 
   return (
     <Form>
