@@ -99,10 +99,6 @@ const ItemDataInputPopover: React.FC<IItemDataInputPopover> = (props) => {
       .then((res) => setSearchResult(() => res))
       .catch((e) => console.error(e));
   }, [query, option.id]);
-
-  console.log(
-    !searchResult ? 0 : Math.floor(searchResult.start / searchResult.num),
-  );
   
   return (
     <InputPopover
