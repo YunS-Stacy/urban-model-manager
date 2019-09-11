@@ -21,7 +21,17 @@ async function getIdentity() {
   const storageItem = localStorage.getItem(SESSION_KEY);
   if (storageItem !== null) {
     const session = UserSession.deserialize(storageItem);
-    return await getIdentityFromSession(session);
+    // Check date
+    if (session.tokenExpires < new Date()) {
+      localStorage.removeItem(SESSION_KEY);
+      const session = await handleOAuth();
+      if (session) {
+        window.localStorage.setItem(SESSION_KEY, session.serialize());
+        return await getIdentityFromSession(session);
+      }
+    } else {
+      return await getIdentityFromSession(session);
+    }
   } else {
     const session = await handleOAuth();
     if (session) {
@@ -36,7 +46,7 @@ const IdentityNav: React.FC = () => {
 
   const signInFn = async () => {
     setIdentity(await getIdentity());
-  }
+  };
 
   const signOutFn = () => {
     localStorage.removeItem(SESSION_KEY);
@@ -62,9 +72,7 @@ const IdentityNav: React.FC = () => {
   if (!(identity && identity.user)) {
     return (
       <Nav style={{ justifyContent: 'flex-end !important' }}>
-        <Button onClick={signInFn}>
-          Sign In
-        </Button>
+        <Button onClick={signInFn}>Sign In</Button>
       </Nav>
     );
   }
@@ -128,10 +136,7 @@ const IdentityNav: React.FC = () => {
             // smOffset={6}
             style={{ textAlign: 'center', padding: '0 20px 0 10px' }}
           >
-            <Button
-              style={{ width: 150 }}
-              onClick={signOutFn}
-            >
+            <Button style={{ width: 150 }} onClick={signOutFn}>
               Sign Out
             </Button>
           </Col>

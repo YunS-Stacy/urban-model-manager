@@ -298,7 +298,7 @@ const ItemsList = () => {
     }
   };
 
-  return searchResult && searchResult.results.length > 0 ? (
+  return identity && identity.user ? (
     <>
       <AccessContext.Provider
         value={{
@@ -313,14 +313,14 @@ const ItemsList = () => {
           }}
         />
 
-        <ItemAccordion
+        {searchResult && searchResult.results.length > 0 && <ItemAccordion
           values={searchResult && searchResult.results}
           value={item}
           defaultSharing={defaultSharingOption}
           setValueFn={(cb) => setItem(cb)}
           submitFn={updateFn}
           deleteFn={deleteFn}
-        />
+        />}
       </AccessContext.Provider>
 
       {searchResult && searchResult.total > 0 ? (
