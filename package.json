@@ -1,5 +1,5 @@
 {
-  "name": "urban-data-manager",
+  "name": "urban-model-manager",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -45,5 +45,5 @@
     "@welldone-software/why-did-you-render": "^3.3.3",
     "eslint": "^6.1.0"
   },
-  "homepage": "."
+  "homepage": "https://urban-model-manager.now.sh/"
 }
